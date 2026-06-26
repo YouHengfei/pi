@@ -81,6 +81,19 @@ If rebase conflicts occur:
 - If a conflict is in a file you did not modify, abort and ask the user.
 - Never force push.
 
+## Commit Authorship (Personal Account)
+
+Commits in this project must be authored under the personal GitHub account `YouHengfei`, NOT the `youhf` system account.
+
+- The `youhf` / `x0242yhf@tecorigin.com` identity (the global git config) is the wrong author — never commit with it.
+- SSH routes to the personal account via the `github-personal` host alias (`~/.ssh/config`: `HostName github.com`, `IdentityFile ~/.ssh/id_ed25519_private`). All remotes use `git@github-personal:...`.
+- The per-repo config is set to the personal identity; verify before committing:
+  ```
+  git config user.name      # should be YouHengfei
+  git config user.email     # should be the personal email, not x0242yhf@tecorigin.com
+  ```
+- If `user.name` shows `youhf`, reset it per-repo (not `--global`): `git config user.name YouHengfei` and `git config user.email <personal-email>`.
+
 ## Repository Remotes (Fork Workflow)
 
 This checkout is a fork setup: personal modifications push to the fork, upstream updates pull from the main repo.

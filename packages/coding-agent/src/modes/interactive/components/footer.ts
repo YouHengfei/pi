@@ -125,6 +125,12 @@ export class FooterComponent implements Component {
 			pwd = `${pwd} • ${sessionName}`;
 		}
 
+		// Add current branch label (tag) if the current branch has one
+		const branchLabel = this.session.sessionManager.getCurrentBranchLabel();
+		if (branchLabel) {
+			pwd = `${pwd} #${branchLabel}`;
+		}
+
 		// Build stats line
 		const statsParts = [];
 		if (usageTotals.input) statsParts.push(`↑${formatTokens(usageTotals.input)}`);

@@ -1225,6 +1225,24 @@ export class SessionManager {
 	}
 
 	/**
+	 * Get the label of the current branch: walk from the current leaf up the
+	 * parentId chain and return the nearest labeled entry. Returns undefined
+	 * when neither the leaf nor any ancestor on the current branch is labeled.
+	 */
+	getCurrentBranchLabel(): string | undefined {
+		let currentId: string | null = this.leafId;
+		while (currentId !== null) {
+			const label = this.labelsById.get(currentId);
+			if (label) {
+				return label;
+			}
+			const entry = this.byId.get(currentId);
+			currentId = entry?.parentId ?? null;
+		}
+		return undefined;
+	}
+
+	/**
 	 * Set or clear a label on an entry.
 	 * Labels are user-defined markers for bookmarking/navigation.
 	 * Pass undefined or empty string to clear the label.

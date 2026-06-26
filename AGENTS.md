@@ -81,6 +81,48 @@ If rebase conflicts occur:
 - If a conflict is in a file you did not modify, abort and ask the user.
 - Never force push.
 
+## Repository Remotes (Fork Workflow)
+
+This checkout is a fork setup: personal modifications push to the fork, upstream updates pull from the main repo.
+
+- `origin` → personal fork `git@github-personal:YouHengfei/pi.git` (push personal branches here).
+- `upstream` → main repo `git@github-personal:earendil-works/pi.git` (pull updates; never push to upstream).
+- Personal changes live on `personal/<release>` branches (e.g. `personal/v0.80.2`) based off the release tag — a thin layer of personal commits on top of a clean release.
+
+Push personal changes (the branch tracks `origin`):
+
+```bash
+git add <your files>
+git commit -m "feat(coding-agent): ..."
+git push
+```
+
+Pull upstream updates:
+
+```bash
+git fetch upstream --tags
+git tag --sort=-v:refname | head        # latest releases
+```
+
+Upgrade a personal branch to a new release (rebase personal commits onto the new tag):
+
+```bash
+git fetch upstream --tags
+git rebase v<new-release>
+git push -f origin personal/<release>   # force-push your own fork branch
+```
+
+Force-push exception: the "Never force push" rule above covers `upstream` and shared branches. Force-pushing your own `personal/*` branch to your `origin` fork is expected after a rebase.
+
+Create a PR from the fork to upstream: push the branch to `origin`, then open `https://github.com/YouHengfei/pi/pull/new/<branch>` (or `gh pr create` if `gh` is installed) targeting `earendil-works/pi:main`.
+
+Run a clean upstream release with no personal commits:
+
+```bash
+git checkout v<release>                 # detached HEAD on the tag
+git switch personal/<release>           # return to the personal branch when done
+```
+
 ## Issues and PRs
 
 See `CONTRIBUTING.md` for the contributor gate (auto-close workflows, `lgtm`/`lgtmi`, quality bar).

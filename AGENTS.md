@@ -39,6 +39,17 @@
 - For ad-hoc scripts, `write` them to a temp file (e.g. `/tmp`), run, edit if needed, remove when done. Don't embed multi-line scripts in `bash` commands.
 - Never commit unless the user asks.
 
+## Running pi From Local Source
+
+The global `pi` command is symlinked to this repo's compiled output, so rebuilding here updates the global `pi` with no re-link step.
+
+- Resolution: `pi` → `nodejs/bin/pi` → `lib/node_modules/@earendil-works/pi-coding-agent` (npm link → `packages/coding-agent`) → `dist/cli.js`.
+- pi runs from `dist/` (compiled JS), not `src/`; source edits take effect only after a rebuild.
+- Build from the repo root to pick up changes: `npm run build` (builds `tui` → `ai` → `agent` → `coding-agent` in dependency order).
+- Only changed `packages/coding-agent`? `cd packages/coding-agent && npm run build` is enough. Changed `ai`/`tui`/`agent`? Build those first, or just run the root build.
+- No `npm link` needed after rebuilding; the symlink already points at the source `dist/`.
+- Reference only — the "Never run `npm run build` unless requested by the user" rule still applies.
+
 ## Dependency and Install Security
 
 - Treat npm dep and lockfile changes as reviewed code. Direct external deps stay pinned to exact versions.

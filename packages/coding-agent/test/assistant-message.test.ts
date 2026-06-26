@@ -238,4 +238,27 @@ describe("AssistantMessageComponent", () => {
 		const unpaddedLines = unpaddedComponent.render(40).map((line) => stripAnsi(line));
 		expect(unpaddedLines.some((line) => line.startsWith("hello"))).toBe(true);
 	});
+
+	test("renders thinking block on a background card when theme defines thinkingBg", () => {
+		process.env.COLORTERM = "truecolor";
+		initTheme("dark");
+
+		const component = new AssistantMessageComponent(
+			createAssistantMessage([{ type: "thinking", thinking: "reasoning here" }]),
+		);
+		const rendered = component.render(60).join("\n");
+
+		// dark theme defines thinkingBg → thinking block sits on a background card
+		expect(rendered).toMatch(/\x1b\[48;/);
+	});
+
+	test("does not apply a background card to plain answer text", () => {
+		process.env.COLORTERM = "truecolor";
+		initTheme("dark");
+
+		const component = new AssistantMessageComponent(createAssistantMessage([{ type: "text", text: "answer here" }]));
+		const rendered = component.render(60).join("\n");
+
+		expect(rendered).not.toMatch(/\x1b\[48;/);
+	});
 });

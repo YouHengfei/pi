@@ -160,13 +160,13 @@ vim ~/.pi/agent/themes/my-theme.json
 
 - `name` is required, must be unique, and must not contain `/`.
 - `vars` is optional. Define reusable colors here, then reference them in `colors`.
-- `colors` must define all 51 required tokens. `thinkingMax`, `scrollbarThumb`, and the two search highlight tokens are optional and use the fallbacks listed below.
+- `colors` must define all 51 required tokens. `thinkingMax`, `thinkingBg`, `scrollbarThumb`, and the two search highlight tokens are optional and use the fallbacks listed below.
 
 The `$schema` field enables editor auto-completion and validation.
 
 ## Color Tokens
 
-Every theme must define all 51 required color tokens. The optional tokens preserve compatibility with existing themes: `thinkingMax` falls back to `thinkingXhigh`, `scrollbarThumb` and `searchMatchBg` fall back to `selectedBg`, and `searchMatchText` falls back to `text`. Other search matches use `searchMatchText` on `searchMatchBg` with an underline; the current match reverses that foreground/background pair and uses bold text.
+Every theme must define all 51 required color tokens. The optional tokens preserve compatibility with existing themes: `thinkingMax` falls back to `thinkingXhigh`, `scrollbarThumb` and `searchMatchBg` fall back to `selectedBg`, `searchMatchText` falls back to `text`, and omitting `thinkingBg` means no thinking card. Other search matches use `searchMatchText` on `searchMatchBg` with an underline; the current match reverses that foreground/background pair and uses bold text.
 
 ### Core UI (11 colors)
 
@@ -184,7 +184,7 @@ Every theme must define all 51 required color tokens. The optional tokens preser
 | `text` | Default text (usually `""`) |
 | `thinkingText` | Thinking block text |
 
-### Backgrounds & Content (11 required, 3 optional)
+### Backgrounds & Content (11 required, 4 optional)
 
 | Token | Purpose |
 |-------|---------|
@@ -202,6 +202,7 @@ Every theme must define all 51 required color tokens. The optional tokens preser
 | `toolErrorBg` | Tool box (error) |
 | `toolTitle` | Tool title |
 | `toolOutput` | Tool output text |
+| `thinkingBg` (optional) | Thinking block background; omitted = no card |
 
 ### Markdown (10 colors)
 

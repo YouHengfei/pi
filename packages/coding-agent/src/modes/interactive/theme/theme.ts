@@ -95,6 +95,8 @@ const ThemeJsonSchema = Type.Object({
 		thinkingMax: Type.Optional(ColorValueSchema),
 		// Bash Mode (1 color)
 		bashMode: ColorValueSchema,
+		// Thinking block background (optional; omitted = no card)
+		thinkingBg: Type.Optional(ColorValueSchema),
 	}),
 	export: Type.Optional(
 		Type.Object({
@@ -166,7 +168,8 @@ export type ThemeBg =
 	| "customMessageBg"
 	| "toolPendingBg"
 	| "toolSuccessBg"
-	| "toolErrorBg";
+	| "toolErrorBg"
+	| "thinkingBg";
 
 type OptionalThemeColor = "thinkingMax" | "searchMatchText";
 type OptionalThemeBg = "scrollbarThumb" | "searchMatchBg";
@@ -397,6 +400,18 @@ export class Theme {
 		const ansi = this.bgColors.get(color);
 		if (!ansi) throw new Error(`Unknown theme background color: ${color}`);
 		return `${ansi}${text}\x1b[49m`; // Reset only background color
+	}
+
+	/**
+	 * Background-color applicator for thinking blocks. Returns `undefined`
+	 * when the theme does not define a thinking background, so no card is
+	 * rendered (backward compatible with themes that predate this token).
+	 */
+	getThinkingBgColor(): ((text: string) => string) | undefined {
+		const ansi = this.bgColors.get("thinkingBg");
+		// "\x1b[49m" is the reset-only value produced for "" (no background) — treat as no card.
+		if (!ansi || ansi === "\x1b[49m") return undefined;
+		return (text: string) => `${ansi}${text}\x1b[49m`;
 	}
 
 	bold(text: string): string {
@@ -639,6 +654,7 @@ function createTheme(themeJson: ThemeJson, mode?: ColorMode, sourcePath?: string
 		"toolPendingBg",
 		"toolSuccessBg",
 		"toolErrorBg",
+		"thinkingBg",
 	]);
 	for (const [key, value] of Object.entries(resolvedColors)) {
 		if (bgColorKeys.has(key)) {

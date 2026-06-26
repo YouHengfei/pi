@@ -308,6 +308,10 @@
 				"bashMode": {
 					"$ref": "#/$defs/colorValue",
 					"description": "Editor border color in bash mode"
+				},
+				"thinkingBg": {
+					"$ref": "#/$defs/colorValue",
+					"description": "Thinking block background (optional; omitted = no card)"
 				}
 			},
 			"additionalProperties": false

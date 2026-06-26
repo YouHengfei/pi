@@ -1,5 +1,5 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import { Container, Markdown, type MarkdownTheme, Spacer, Text } from "@earendil-works/pi-tui";
+import { Container, type DefaultTextStyle, Markdown, type MarkdownTheme, Spacer, Text } from "@earendil-works/pi-tui";
 import type { MarkdownTransformer } from "../../../core/extensions/types.ts";
 import { getMarkdownTheme, theme } from "../theme/theme.ts";
 import { createMarkdownTransform } from "./markdown-transform.ts";
@@ -142,17 +142,22 @@ export class AssistantMessageComponent extends Container {
 						new Text(theme.italic(theme.fg("thinkingText", this.hiddenThinkingLabel)), this.outputPad, 0),
 					);
 				} else {
-					// Render each run of thinking blocks as one Markdown section.
+					// Thinking traces in thinkingText color, italic, on a subtle card when themed.
+					const thinkingBg = theme.getThinkingBgColor();
+					const thinkingOptions: DefaultTextStyle = {
+						color: (text: string) => theme.fg("thinkingText", text),
+						italic: true,
+					};
+					if (thinkingBg) {
+						thinkingOptions.bgColor = thinkingBg;
+					}
 					this.contentContainer.addChild(
 						new Markdown(
 							thinkingBlocks.join("\n\n"),
 							this.outputPad,
 							0,
 							this.markdownTheme,
-							{
-								color: (text: string) => theme.fg("thinkingText", text),
-								italic: true,
-							},
+							thinkingOptions,
 							{
 								transform: createMarkdownTransform(
 									"assistant-thinking",

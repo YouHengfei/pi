@@ -15,6 +15,10 @@ packages/ai/src/providers/.model-generation-*/
 # Environment
 .env
 
+# Personal local context files (loaded alongside AGENTS.md, never tracked)
+AGENTS.local.md
+CLAUDE.local.md
+
 # Editor files
 .vscode/
 .zed/

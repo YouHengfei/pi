@@ -39,17 +39,6 @@
 - For ad-hoc scripts, `write` them to a temp file (e.g. `/tmp`), run, edit if needed, remove when done. Don't embed multi-line scripts in `bash` commands.
 - Never commit unless the user asks.
 
-## Running pi From Local Source
-
-The global `pi` command is symlinked to this repo's compiled output, so rebuilding here updates the global `pi` with no re-link step.
-
-- Resolution: `pi` → `nodejs/bin/pi` → `lib/node_modules/@earendil-works/pi-coding-agent` (npm link → `packages/coding-agent`) → `dist/cli.js`.
-- pi runs from `dist/` (compiled JS), not `src/`; source edits take effect only after a rebuild.
-- Build from the repo root to pick up changes: `npm run build` (builds `tui` → `ai` → `agent` → `coding-agent` in dependency order).
-- Only changed `packages/coding-agent`? `cd packages/coding-agent && npm run build` is enough. Changed `ai`/`tui`/`agent`? Build those first, or just run the root build.
-- No `npm link` needed after rebuilding; the symlink already points at the source `dist/`.
-- Reference only — the "Never run `npm run build` unless requested by the user" rule still applies.
-
 ## Dependency and Install Security
 
 - Treat npm dep and lockfile changes as reviewed code. Direct external deps stay pinned to exact versions.
@@ -80,61 +69,6 @@ If rebase conflicts occur:
 - Resolve conflicts only in files you modified.
 - If a conflict is in a file you did not modify, abort and ask the user.
 - Never force push.
-
-## Commit Authorship (Personal Account)
-
-Commits in this project must be authored under the personal GitHub account `YouHengfei`, NOT the `youhf` system account.
-
-- The `youhf` / `x0242yhf@tecorigin.com` identity (the global git config) is the wrong author — never commit with it.
-- SSH routes to the personal account via the `github-personal` host alias (`~/.ssh/config`: `HostName github.com`, `IdentityFile ~/.ssh/id_ed25519_private`). All remotes use `git@github-personal:...`.
-- The per-repo config is set to the personal identity; verify before committing:
-  ```
-  git config user.name      # should be YouHengfei
-  git config user.email     # should be the personal email, not x0242yhf@tecorigin.com
-  ```
-- If `user.name` shows `youhf`, reset it per-repo (not `--global`): `git config user.name YouHengfei` and `git config user.email <personal-email>`.
-
-## Repository Remotes (Fork Workflow)
-
-This checkout is a fork setup: personal modifications push to the fork, upstream updates pull from the main repo.
-
-- `origin` → personal fork `git@github-personal:YouHengfei/pi.git` (push personal branches here).
-- `upstream` → main repo `git@github-personal:earendil-works/pi.git` (pull updates; never push to upstream).
-- Personal changes live on `personal/<release>` branches (e.g. `personal/v0.80.2`) based off the release tag — a thin layer of personal commits on top of a clean release.
-
-Push personal changes (the branch tracks `origin`):
-
-```bash
-git add <your files>
-git commit -m "feat(coding-agent): ..."
-git push
-```
-
-Pull upstream updates:
-
-```bash
-git fetch upstream --tags
-git tag --sort=-v:refname | head        # latest releases
-```
-
-Upgrade a personal branch to a new release (rebase personal commits onto the new tag):
-
-```bash
-git fetch upstream --tags
-git rebase v<new-release>
-git push -f origin personal/<release>   # force-push your own fork branch
-```
-
-Force-push exception: the "Never force push" rule above covers `upstream` and shared branches. Force-pushing your own `personal/*` branch to your `origin` fork is expected after a rebase.
-
-Create a PR from the fork to upstream: push the branch to `origin`, then open `https://github.com/YouHengfei/pi/pull/new/<branch>` (or `gh pr create` if `gh` is installed) targeting `earendil-works/pi:main`.
-
-Run a clean upstream release with no personal commits:
-
-```bash
-git checkout v<release>                 # detached HEAD on the tag
-git switch personal/<release>           # return to the personal branch when done
-```
 
 ## Issues and PRs
 

@@ -84,22 +84,18 @@ export class FooterComponent implements Component {
 	render(width: number): string[] {
 		const state = this.session.state;
 
-		// Calculate cumulative usage from ALL session entries (not just post-compaction messages)
+		// Calculate cumulative usage from ALL session entries (not just post-compaction messages).
+		// Token and cache statistics are intentionally omitted from the compact footer.
 		const usageTotals = createUsageTotals();
-		let latestCacheHitRate: number | undefined;
-
 		for (const entry of this.session.sessionManager.getEntries()) {
 			if (entry.type === "message" && entry.message.role === "assistant") {
 				addUsageToTotals(usageTotals, entry.message.usage);
-
-				const latestPromptTokens =
-					entry.message.usage.input + entry.message.usage.cacheRead + entry.message.usage.cacheWrite;
-				latestCacheHitRate =
-					latestPromptTokens > 0 ? (entry.message.usage.cacheRead / latestPromptTokens) * 100 : undefined;
 			} else if (entry.type === "message" && entry.message.role === "toolResult" && entry.message.usage) {
 				addUsageToTotals(usageTotals, entry.message.usage);
 			} else if ((entry.type === "branch_summary" || entry.type === "compaction") && entry.usage) {
 				addUsageToTotals(usageTotals, entry.usage);
+			}
+		}
 			}
 		}
 
@@ -131,17 +127,9 @@ export class FooterComponent implements Component {
 			pwd = `${pwd} #${branchLabel}`;
 		}
 
-		// Build stats line
+		// Build the compact left side. Token statistics are intentionally omitted.
 		const statsParts = [];
-		if (usageTotals.input) statsParts.push(`↑${formatTokens(usageTotals.input)}`);
-		if (usageTotals.output) statsParts.push(`↓${formatTokens(usageTotals.output)}`);
-		if (usageTotals.cacheRead) statsParts.push(`R${formatTokens(usageTotals.cacheRead)}`);
-		if (usageTotals.cacheWrite) statsParts.push(`W${formatTokens(usageTotals.cacheWrite)}`);
-		if ((usageTotals.cacheRead > 0 || usageTotals.cacheWrite > 0) && latestCacheHitRate !== undefined) {
-			statsParts.push(`CH${latestCacheHitRate.toFixed(1)}%`);
-		}
-
-		// Kimi Coding is subscription-backed despite using API-key authentication.
+		// Show cost with "(sub)" indicator if using OAuth subscription.
 		const usingSubscription = state.model
 			? state.model.provider === "kimi-coding" || this.session.modelRuntime.isUsingSubscription(state.model.provider)
 			: false;
@@ -169,17 +157,17 @@ export class FooterComponent implements Component {
 			statsParts.push(`${theme.fg("dim", "•")} ${theme.bold(theme.fg("warning", "xp"))}`);
 		}
 
-		let statsLeft = statsParts.join(" ");
+		let leftSide = `${pwd} ${statsParts.join(" ")}`.trim();
 
 		// Add model name on the right side, plus thinking level if model supports it
 		const modelName = state.model?.id || "no-model";
 
-		let statsLeftWidth = visibleWidth(statsLeft);
+		let leftSideWidth = visibleWidth(leftSide);
 
-		// If statsLeft is too wide, truncate it
-		if (statsLeftWidth > width) {
-			statsLeft = truncateToWidth(statsLeft, width, "...");
-			statsLeftWidth = visibleWidth(statsLeft);
+		// If the left side is too wide, truncate it
+		if (leftSideWidth > width) {
+			leftSide = truncateToWidth(leftSide, width, "...");
+			leftSideWidth = visibleWidth(leftSide);
 		}
 
 		// Calculate available space for padding (minimum 2 spaces between stats and model)
@@ -205,44 +193,37 @@ export class FooterComponent implements Component {
 		// Prepend the provider in parentheses if there are multiple providers and there's enough room
 		let rightSide = rightSideWithoutProvider;
 		if (this.footerData.getAvailableProviderCount() > 1 && state.model) {
-			rightSide = `(${state.model!.provider}) ${rightSideWithoutProvider}`;
-			if (statsLeftWidth + minPadding + visibleWidth(rightSide) > width) {
+			rightSide = `(${state.model.provider}) ${rightSideWithoutProvider}`;
+			if (leftSideWidth + minPadding + visibleWidth(rightSide) > width) {
 				// Too wide, fall back
 				rightSide = rightSideWithoutProvider;
 			}
 		}
 
 		const rightSideWidth = visibleWidth(rightSide);
-		const totalNeeded = statsLeftWidth + minPadding + rightSideWidth;
+		const totalNeeded = leftSideWidth + minPadding + rightSideWidth;
 
-		let statsLine: string;
+		let footerLine: string;
 		if (totalNeeded <= width) {
 			// Both fit - add padding to right-align model
-			const padding = " ".repeat(width - statsLeftWidth - rightSideWidth);
-			statsLine = statsLeft + padding + rightSide;
+			const padding = " ".repeat(width - leftSideWidth - rightSideWidth);
+			footerLine = leftSide + padding + rightSide;
 		} else {
 			// Need to truncate right side
-			const availableForRight = width - statsLeftWidth - minPadding;
+			const availableForRight = width - leftSideWidth - minPadding;
 			if (availableForRight > 0) {
 				const truncatedRight = truncateToWidth(rightSide, availableForRight, "");
 				const truncatedRightWidth = visibleWidth(truncatedRight);
-				const padding = " ".repeat(Math.max(0, width - statsLeftWidth - truncatedRightWidth));
-				statsLine = statsLeft + padding + truncatedRight;
+				const padding = " ".repeat(Math.max(0, width - leftSideWidth - truncatedRightWidth));
+				footerLine = leftSide + padding + truncatedRight;
 			} else {
 				// Not enough space for right side at all
-				statsLine = statsLeft;
+				footerLine = leftSide;
 			}
 		}
 
-		// Apply dim to each part separately. statsLeft may contain color codes (for context %)
-		// that end with a reset, which would clear an outer dim wrapper. So we dim the parts
-		// before and after the colored section independently.
-		const dimStatsLeft = theme.fg("dim", statsLeft);
-		const remainder = statsLine.slice(statsLeft.length); // padding + rightSide
-		const dimRemainder = theme.fg("dim", remainder);
-
-		const pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
-		const lines = [pwdLine, dimStatsLeft + dimRemainder];
+		const dimFooterLine = theme.fg("dim", footerLine);
+		const lines = [dimFooterLine];
 
 		// Add extension statuses on a single line, sorted by key alphabetically
 		const extensionStatuses = this.footerData.getExtensionStatuses();

@@ -193,6 +193,15 @@ export class FooterComponent implements Component {
 				thinkingLevel === "off" ? `${modelName} • thinking off` : `${modelName} • ${thinkingLevel}`;
 		}
 
+		const footerStatuses = this.footerData.getFooterStatuses();
+		if (footerStatuses.size > 0) {
+			const statusText = Array.from(footerStatuses.entries())
+				.sort(([a], [b]) => a.localeCompare(b))
+				.map(([, text]) => sanitizeStatusText(text))
+				.join(" ");
+			if (statusText) rightSideWithoutProvider += ` • ${statusText}`;
+		}
+
 		// Prepend the provider in parentheses if there are multiple providers and there's enough room
 		let rightSide = rightSideWithoutProvider;
 		if (this.footerData.getAvailableProviderCount() > 1 && state.model) {

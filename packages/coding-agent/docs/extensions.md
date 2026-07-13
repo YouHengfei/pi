@@ -2560,6 +2560,10 @@ See [examples/extensions/timed-confirm.ts](../examples/extensions/timed-confirm.
 ctx.ui.setStatus("my-ext", "Processing...");
 ctx.ui.setStatus("my-ext", undefined);  // Clear
 
+// Status beside the current model in the footer (persistent until cleared)
+ctx.ui.setFooterStatus("my-ext", "Processing...");
+ctx.ui.setFooterStatus("my-ext", undefined);  // Clear
+
 // Working loader (shown during streaming)
 ctx.ui.setWorkingMessage("Thinking deeply...");
 ctx.ui.setWorkingMessage();  // Restore default

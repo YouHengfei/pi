@@ -4,6 +4,7 @@
  * footerData exposes data not otherwise accessible:
  * - getGitBranch(): current git branch
  * - getExtensionStatuses(): texts from ctx.ui.setStatus()
+ * - getFooterStatuses(): texts from ctx.ui.setFooterStatus()
  *
  * Token stats come from ctx.sessionManager/ctx.model (already accessible).
  */

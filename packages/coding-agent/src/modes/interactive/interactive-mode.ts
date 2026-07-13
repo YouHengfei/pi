@@ -2068,6 +2068,14 @@ export class InteractiveMode {
 		this.ui.requestRender();
 	}
 
+	/**
+	 * Set extension status text beside the current model in the footer.
+	 */
+	private setExtensionFooterStatus(key: string, text: string | undefined): void {
+		this.footerDataProvider.setFooterStatus(key, text);
+		this.ui.requestRender();
+	}
+
 	private showStatusIndicator(indicator: StatusIndicator): void {
 		this.activeStatusIndicator?.dispose();
 		this.activeStatusIndicator = indicator;
@@ -2374,6 +2382,7 @@ export class InteractiveMode {
 			notify: (message, type) => this.showExtensionNotify(message, type),
 			onTerminalInput: (handler) => this.addExtensionTerminalInputListener(handler),
 			setStatus: (key, text) => this.setExtensionStatus(key, text),
+			setFooterStatus: (key, text) => this.setExtensionFooterStatus(key, text),
 			setWorkingMessage: (message) => {
 				this.workingMessage = message;
 				if (this.activeStatusIndicator?.kind === "working") {

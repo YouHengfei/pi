@@ -147,6 +147,9 @@ export interface ExtensionUIContext {
 	/** Set status text in the footer/status bar. Pass undefined to clear. */
 	setStatus(key: string, text: string | undefined): void;
 
+	/** Set status text beside the current model in the footer. Pass undefined to clear. */
+	setFooterStatus(key: string, text: string | undefined): void;
+
 	/** Set the working/loading message shown during streaming. Call with no argument to restore default. */
 	setWorkingMessage(message?: string): void;
 

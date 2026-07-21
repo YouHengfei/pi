@@ -201,6 +201,7 @@
 - Added inherited bounded branch-entry and indexed open-operation recovery queries to the v4 session API ([#7448](https://github.com/earendil-works/pi/pull/7448), [#7646](https://github.com/earendil-works/pi/pull/7646)).
 - Added the inherited compile-complete `AgentHarness` v2 scaffold; unfinished operation paths reject with `HarnessNotImplemented` while durable execution is implemented.
 - Added built-in Codex subscription usage display for the `openai-codex` provider, including footer status, periodic refresh, and `/codex-usage` manual refresh.
+- Added the GitHub Dark Default theme as a built-in theme.
 
 ### Changed
 
@@ -376,6 +377,7 @@
 ### Changed
 
 - Changed inherited generated model catalogs to expose only provider-verified reasoning effort levels from models.dev ([#6928](https://github.com/earendil-works/pi/pull/6928) by [@davidbrai](https://github.com/davidbrai)).
+
 
 ### Fixed
 

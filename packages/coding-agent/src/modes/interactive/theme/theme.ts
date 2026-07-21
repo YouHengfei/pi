@@ -486,12 +486,10 @@ let BUILTIN_THEMES: Record<string, ThemeJson> | undefined;
 function getBuiltinThemes(): Record<string, ThemeJson> {
 	if (!BUILTIN_THEMES) {
 		const themesDir = getThemesDir();
-		const darkPath = path.join(themesDir, "dark.json");
-		const lightPath = path.join(themesDir, "light.json");
-		BUILTIN_THEMES = {
-			dark: JSON.parse(fs.readFileSync(darkPath, "utf-8")) as ThemeJson,
-			light: JSON.parse(fs.readFileSync(lightPath, "utf-8")) as ThemeJson,
-		};
+		const themeNames = ["dark", "light", "github-dark-default"];
+		BUILTIN_THEMES = Object.fromEntries(
+			themeNames.map((name) => [name, JSON.parse(fs.readFileSync(path.join(themesDir, `${name}.json`), "utf-8"))]),
+		);
 	}
 	return BUILTIN_THEMES;
 }

@@ -10,7 +10,7 @@
  * Note: This uses a ChatGPT backend usage endpoint that may change without notice.
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { type ExtensionAPI, type ExtensionContext, readStoredCredential } from "@earendil-works/pi-coding-agent";
 
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -123,15 +123,15 @@ function formatDetails(snapshot: UsageSnapshot): string {
 }
 
 async function fetchUsage(ctx: ExtensionContext): Promise<UsageResult> {
-	const authStorage = ctx.modelRegistry.authStorage;
-	const credential = authStorage.get("openai-codex");
+	const credential = readStoredCredential("openai-codex");
 	if (!credential || credential.type !== "oauth") {
 		return { ok: false, message: "No stored OpenAI Codex OAuth credentials. Run /login first." };
 	}
 
 	try {
-		const accessToken = await authStorage.getApiKey("openai-codex");
-		const refreshedCredential = authStorage.get("openai-codex");
+		const auth = await ctx.modelRegistry.getProviderAuth("openai-codex");
+		const accessToken = auth?.auth.apiKey;
+		const refreshedCredential = readStoredCredential("openai-codex");
 		const accountId =
 			refreshedCredential?.type === "oauth" && typeof refreshedCredential.accountId === "string"
 				? refreshedCredential.accountId

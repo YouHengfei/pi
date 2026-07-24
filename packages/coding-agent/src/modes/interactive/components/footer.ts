@@ -96,8 +96,6 @@ export class FooterComponent implements Component {
 				addUsageToTotals(usageTotals, entry.usage);
 			}
 		}
-			}
-		}
 
 		// Calculate context usage from session (handles compaction correctly).
 		// After compaction, tokens are unknown until the next LLM response.

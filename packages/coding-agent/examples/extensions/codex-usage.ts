@@ -123,12 +123,12 @@ function formatDetails(snapshot: UsageSnapshot): string {
 }
 
 async function fetchUsage(ctx: ExtensionContext): Promise<UsageResult> {
-	const credential = readStoredCredential("openai-codex");
-	if (!credential || credential.type !== "oauth") {
-		return { ok: false, message: "No stored OpenAI Codex OAuth credentials. Run /login first." };
-	}
-
 	try {
+		const credential = readStoredCredential("openai-codex");
+		if (!credential || credential.type !== "oauth") {
+			return { ok: false, message: "No stored OpenAI Codex OAuth credentials. Run /login first." };
+		}
+
 		const auth = await ctx.modelRegistry.getProviderAuth("openai-codex");
 		const accessToken = auth?.auth.apiKey;
 		const refreshedCredential = readStoredCredential("openai-codex");
@@ -165,6 +165,7 @@ async function fetchUsage(ctx: ExtensionContext): Promise<UsageResult> {
 export default function (pi: ExtensionAPI) {
 	let refreshTimer: ReturnType<typeof setInterval> | undefined;
 	let refreshInFlight: Promise<UsageResult> | undefined;
+	let lastStatusText: string | undefined;
 
 	const isCodexModel = (ctx: ExtensionContext): boolean => ctx.model?.provider === "openai-codex";
 
@@ -182,28 +183,34 @@ export default function (pi: ExtensionAPI) {
 			clearInterval(refreshTimer);
 			refreshTimer = undefined;
 		}
+		lastStatusText = undefined;
 		updateDisplay(ctx, undefined);
 	};
 
 	const refresh = async (ctx: ExtensionContext, notify: boolean): Promise<void> => {
-		if (!isCodexModel(ctx)) {
-			updateDisplay(ctx, undefined);
-			return;
-		}
-		if (!refreshInFlight) {
-			refreshInFlight = fetchUsage(ctx).finally(() => {
-				refreshInFlight = undefined;
-			});
-		}
-		const result = await refreshInFlight;
+		try {
+			if (!isCodexModel(ctx)) {
+				updateDisplay(ctx, undefined);
+				return;
+			}
+			if (!refreshInFlight) {
+				refreshInFlight = fetchUsage(ctx).finally(() => {
+					refreshInFlight = undefined;
+				});
+			}
+			const result = await refreshInFlight;
 
-		if (!isCodexModel(ctx)) return;
-		if (result.ok) {
-			updateDisplay(ctx, formatStatus(result.snapshot));
-			if (notify) ctx.ui.notify(formatDetails(result.snapshot), "info");
-		} else {
-			updateDisplay(ctx, `Codex: ${result.message}`);
-			if (notify) ctx.ui.notify(result.message, "error");
+			if (!isCodexModel(ctx)) return;
+			if (result.ok) {
+				lastStatusText = formatStatus(result.snapshot);
+				updateDisplay(ctx, lastStatusText);
+				if (notify) ctx.ui.notify(formatDetails(result.snapshot), "info");
+			} else {
+				updateDisplay(ctx, lastStatusText);
+				if (notify) ctx.ui.notify(result.message, "error");
+			}
+		} catch {
+			updateDisplay(ctx, lastStatusText);
 		}
 	};
 

@@ -152,20 +152,13 @@ export class AssistantMessageComponent extends Container {
 						thinkingOptions.bgColor = thinkingBg;
 					}
 					this.contentContainer.addChild(
-						new Markdown(
-							thinkingBlocks.join("\n\n"),
-							this.outputPad,
-							0,
-							this.markdownTheme,
-							thinkingOptions,
-							{
-								transform: createMarkdownTransform(
-									"assistant-thinking",
-									this.isStreaming,
-									this.markdownTransformers,
-								),
-							},
-						),
+						new Markdown(thinkingBlocks.join("\n\n"), this.outputPad, 0, this.markdownTheme, thinkingOptions, {
+							transform: createMarkdownTransform(
+								"assistant-thinking",
+								this.isStreaming,
+								this.markdownTransformers,
+							),
+						}),
 					);
 				}
 				if (hasVisibleContentAfter) {

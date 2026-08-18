@@ -222,6 +222,9 @@ async function collectUsage(): Promise<GlobalAggregate> {
 
 	for (const file of files) {
 		seen.add(file);
+		// A file that exists again is live; drop any stale archived entry so a
+		// restored session (e.g. recovered from trash) is not counted twice.
+		delete cache.archived[file];
 		let fileAgg: FileAggregate | undefined;
 
 		try {

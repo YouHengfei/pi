@@ -37,9 +37,10 @@ interface FileAggregate {
 interface UsageCache {
 	version: number;
 	files: Record<string, FileAggregate>;
+	archived: Record<string, FileAggregate>;
 }
 
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 interface GlobalAggregate {
 	tokens: number;
@@ -164,13 +165,14 @@ async function loadCache(): Promise<UsageCache> {
 	try {
 		const raw = await readFile(getCachePath(), "utf8");
 		const parsed = JSON.parse(raw) as UsageCache;
-		if (parsed.version === CACHE_VERSION && parsed.files && typeof parsed.files === "object") {
+		if (parsed.version === CACHE_VERSION && parsed.files && typeof parsed.files === "object"
+			&& parsed.archived && typeof parsed.archived === "object") {
 			return parsed;
 		}
 	} catch {
 		// Missing or corrupt cache: rebuild from scratch.
 	}
-	return { version: CACHE_VERSION, files: {} };
+	return { version: CACHE_VERSION, files: {}, archived: {} };
 }
 
 async function saveCache(cache: UsageCache): Promise<void> {
@@ -251,10 +253,31 @@ async function collectUsage(): Promise<GlobalAggregate> {
 		}
 	}
 
-	// Prune cache entries for deleted session files.
+	// Archive cache entries for deleted session files instead of discarding them.
+	// This preserves their token contribution in the lifetime total even after
+	// the session file is removed, without affecting incremental scanning of
+	// files that still exist.
 	for (const key of Object.keys(cache.files)) {
-		if (!seen.has(key)) delete cache.files[key];
+		if (!seen.has(key)) {
+			cache.archived[key] = cache.files[key];
+			delete cache.files[key];
+		}
 	}
+
+	// Include archived (deleted) session files in the totals.
+	for (const fileAgg of Object.values(cache.archived)) {
+		global.sessionCount++;
+		global.tokens += fileAgg.tokens;
+		for (const [day, tokens] of Object.entries(fileAgg.byDay)) {
+			global.byDay.set(day, (global.byDay.get(day) ?? 0) + tokens);
+		}
+		if (fileAgg.firstTs !== undefined) {
+			if (global.firstTs === undefined || fileAgg.firstTs < global.firstTs) {
+				global.firstTs = fileAgg.firstTs;
+			}
+		}
+	}
+
 	await saveCache(cache);
 
 	return global;

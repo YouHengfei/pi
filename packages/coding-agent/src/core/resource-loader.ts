@@ -8,6 +8,7 @@ import type { ResourceDiagnostic } from "./diagnostics.ts";
 export type { ResourceCollision, ResourceDiagnostic } from "./diagnostics.ts";
 
 import { canonicalizePath, isLocalPath, resolvePath } from "../utils/paths.ts";
+import { stripBom } from "../utils/text.ts";
 import { createEventBus, type EventBus } from "./event-bus.ts";
 import {
 	clearExtensionCache,
@@ -57,7 +58,7 @@ function resolvePromptInput(input: string | undefined, description: string): str
 
 	if (existsSync(input)) {
 		try {
-			return readFileSync(input, "utf-8");
+			return stripBom(readFileSync(input, "utf-8"));
 		} catch (error) {
 			console.error(chalk.yellow(`Warning: Could not read ${description} file ${input}: ${error}`));
 			return input;
@@ -67,41 +68,25 @@ function resolvePromptInput(input: string | undefined, description: string): str
 	return input;
 }
 
-function loadContextFileFromDir(dir: string): Array<{ path: string; content: string }> {
-	const results: Array<{ path: string; content: string }> = [];
-	const standardCandidates = ["AGENTS.override.md", "AGENTS.md", "AGENTS.MD", "CLAUDE.md", "CLAUDE.MD"];
-	for (const filename of standardCandidates) {
+function loadContextFileFromDir(dir: string): { path: string; content: string } | null {
+	const candidates = ["AGENTS.override.md", "AGENTS.md", "AGENTS.MD", "CLAUDE.md", "CLAUDE.MD"];
+	for (const filename of candidates) {
 		const filePath = join(dir, filename);
 		if (existsSync(filePath)) {
 			try {
 				if (!statSync(filePath).isFile()) {
 					continue;
 				}
-				results.push({ path: filePath, content: readFileSync(filePath, "utf-8") });
+				return {
+					path: filePath,
+					content: stripBom(readFileSync(filePath, "utf-8")),
+				};
 			} catch (error) {
 				console.error(chalk.yellow(`Warning: Could not read ${filePath}: ${error}`));
 			}
-			break;
 		}
 	}
-	// Optional local override file (gitignored, user-specific). Loaded alongside the standard file
-	// so the tracked AGENTS.md can stay in sync with upstream while personal rules live separately.
-	const localCandidates = ["AGENTS.local.md", "CLAUDE.local.md"];
-	for (const filename of localCandidates) {
-		const filePath = join(dir, filename);
-		if (existsSync(filePath)) {
-			try {
-				if (!statSync(filePath).isFile()) {
-					continue;
-				}
-				results.push({ path: filePath, content: readFileSync(filePath, "utf-8") });
-			} catch (error) {
-				console.error(chalk.yellow(`Warning: Could not read ${filePath}: ${error}`));
-			}
-			break;
-		}
-	}
-	return results;
+	return null;
 }
 
 /**
@@ -127,9 +112,7 @@ function findShadowedContextFile(cwd: string): string | undefined {
 	// `proj/main`) it is just the directory holding `.bare`, which tracks nothing; a
 	// submodule's gitdir has no `commondir`, so it lands under `.git/modules`.
 	if (canonicalizePath(join(mainRepoRoot, ".git")) !== commonGitDir) return undefined;
-	const worktreeContextFile = loadContextFileFromDir(worktreeRoot).find(
-		(file) => !basename(file.path).includes(".local."),
-	);
+	const worktreeContextFile = loadContextFileFromDir(worktreeRoot);
 	return worktreeContextFile ? join(mainRepoRoot, basename(worktreeContextFile.path)) : undefined;
 }
 
@@ -143,12 +126,10 @@ export function loadProjectContextFiles(options: {
 	const contextFiles: Array<{ path: string; content: string }> = [];
 	const seenPaths = new Set<string>();
 
-	const globalContextFiles = loadContextFileFromDir(resolvedAgentDir);
-	for (const file of globalContextFiles) {
-		if (!seenPaths.has(file.path)) {
-			contextFiles.push(file);
-			seenPaths.add(file.path);
-		}
+	const globalContext = loadContextFileFromDir(resolvedAgentDir);
+	if (globalContext) {
+		contextFiles.push(globalContext);
+		seenPaths.add(globalContext.path);
 	}
 
 	const ancestorContextFiles: Array<{ path: string; content: string }> = [];
@@ -157,17 +138,12 @@ export function loadProjectContextFiles(options: {
 	let currentDir = resolvedCwd;
 
 	while (true) {
-		const dirFiles = loadContextFileFromDir(currentDir);
-		const newFiles = dirFiles.filter(
-			(file) =>
-				(shadowedContextFile === undefined || canonicalizePath(file.path) !== shadowedContextFile) &&
-				!seenPaths.has(file.path),
-		);
-		for (const file of newFiles) {
-			seenPaths.add(file.path);
-		}
-		if (newFiles.length > 0) {
-			ancestorContextFiles.unshift(...newFiles);
+		const contextFile = loadContextFileFromDir(currentDir);
+		const isShadowed =
+			shadowedContextFile !== undefined && canonicalizePath(contextFile?.path ?? "") === shadowedContextFile;
+		if (contextFile && !isShadowed && !seenPaths.has(contextFile.path)) {
+			ancestorContextFiles.unshift(contextFile);
+			seenPaths.add(contextFile.path);
 		}
 
 		const parentDir = dirname(currentDir);

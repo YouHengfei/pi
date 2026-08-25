@@ -474,9 +474,11 @@ function getBuiltinThemes(): Record<string, ThemeJson> {
 		const themesDir = getThemesDir();
 		const darkPath = path.join(themesDir, "dark.json");
 		const lightPath = path.join(themesDir, "light.json");
+		const githubDarkDefaultPath = path.join(themesDir, "github-dark-default.json");
 		BUILTIN_THEMES = {
 			dark: JSON.parse(stripBom(fs.readFileSync(darkPath, "utf-8"))) as ThemeJson,
 			light: JSON.parse(stripBom(fs.readFileSync(lightPath, "utf-8"))) as ThemeJson,
+			"github-dark-default": JSON.parse(stripBom(fs.readFileSync(githubDarkDefaultPath, "utf-8"))) as ThemeJson,
 		};
 	}
 	return BUILTIN_THEMES;

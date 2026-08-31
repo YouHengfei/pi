@@ -16,6 +16,7 @@ import { getCustomThemesDir, getThemesDir } from "../../../config.ts";
 import type { SourceInfo } from "../../../core/source-info.ts";
 import { closeWatcher, watchWithErrorHandler } from "../../../utils/fs-watch.ts";
 import { highlight, supportsLanguage } from "../../../utils/syntax-highlight.ts";
+import { stripBom } from "../../../utils/text.ts";
 
 // ============================================================================
 // Types & Schema
@@ -488,7 +489,10 @@ function getBuiltinThemes(): Record<string, ThemeJson> {
 		const themesDir = getThemesDir();
 		const themeNames = ["dark", "light", "github-dark-default"];
 		BUILTIN_THEMES = Object.fromEntries(
-			themeNames.map((name) => [name, JSON.parse(fs.readFileSync(path.join(themesDir, `${name}.json`), "utf-8"))]),
+			themeNames.map((name) => [
+				name,
+				JSON.parse(stripBom(fs.readFileSync(path.join(themesDir, `${name}.json`), "utf-8"))) as ThemeJson,
+			]),
 		);
 	}
 	return BUILTIN_THEMES;
@@ -609,7 +613,7 @@ function parseThemeJson(label: string, json: unknown): ThemeJson {
 function parseThemeJsonContent(label: string, content: string): ThemeJson {
 	let json: unknown;
 	try {
-		json = JSON.parse(content);
+		json = JSON.parse(stripBom(content));
 	} catch (error) {
 		throw new Error(`Failed to parse theme ${label}: ${error}`);
 	}

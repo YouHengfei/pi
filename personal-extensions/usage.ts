@@ -14,6 +14,10 @@
  *
  * Results are cached in <agent dir>/usage-cache.json keyed by file
  * mtime+size, so repeated queries only re-parse changed session files.
+ *
+ * The rendered report is appended as a custom session entry, so it is shown
+ * in the transcript without entering the LLM context or the prompt cache
+ * prefix.
  */
 
 import { readFile, readdir, stat, writeFile } from "node:fs/promises";
@@ -445,13 +449,21 @@ function renderDailyReport(agg: GlobalAggregate, terminalWidth: number): string 
 
 const CUSTOM_TYPE = "usage-report";
 
+interface UsageReportData {
+	report: string;
+}
+
 export default function usageExtension(pi: ExtensionAPI) {
 	// Render usage reports as plain preformatted text (preserves ANSI colors
-	// and heatmap alignment). Without this, the default renderer would treat
-	// the content as markdown inside a box.
-	pi.registerMessageRenderer(CUSTOM_TYPE, (message) => {
-		const content = typeof message.content === "string" ? message.content : "";
-		return new Text(content, 0, 0);
+	// and heatmap alignment). This is a custom session entry, not a message,
+	// so the report stays visible in the transcript and survives session
+	// resume without ever entering the LLM context or the prompt cache prefix.
+	pi.registerEntryRenderer<UsageReportData>(CUSTOM_TYPE, (entry) => {
+		const report = entry.data?.report;
+		if (typeof report !== "string") {
+			return undefined;
+		}
+		return new Text(report, 0, 0);
 	});
 
 	pi.registerCommand("usage", {
@@ -469,7 +481,7 @@ export default function usageExtension(pi: ExtensionAPI) {
 				return;
 			}
 			ctx.ui.setStatus("usage", "");
-			pi.sendMessage({ customType: CUSTOM_TYPE, content: report, display: true });
+			pi.appendEntry<UsageReportData>(CUSTOM_TYPE, { report });
 		},
 	});
 }

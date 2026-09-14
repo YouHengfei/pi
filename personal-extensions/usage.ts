@@ -466,6 +466,14 @@ export default function usageExtension(pi: ExtensionAPI) {
 		return new Text(report, 0, 0);
 	});
 
+	// Legacy compatibility: reports stored before the switch from sendMessage()
+	// to appendEntry() are persisted as custom_message entries. They already sit
+	// in those sessions' LLM history, so this renderer only fixes their display.
+	pi.registerMessageRenderer(CUSTOM_TYPE, (message) => {
+		const content = typeof message.content === "string" ? message.content : "";
+		return new Text(content, 0, 0);
+	});
+
 	pi.registerCommand("usage", {
 		description: "Show a heatmap of daily token usage across all sessions",
 		handler: async (_args, ctx) => {

@@ -1,13 +1,5 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import {
-	Container,
-	type DefaultTextStyle,
-	Markdown,
-	type MarkdownTheme,
-	MouseRegion,
-	Spacer,
-	Text,
-} from "@earendil-works/pi-tui";
+import { Container, Markdown, type MarkdownTheme, MouseRegion, Spacer, Text } from "@earendil-works/pi-tui";
 import type { MarkdownTransformer } from "../../../core/extensions/types.ts";
 import { getMarkdownTheme, theme } from "../theme/theme.ts";
 import { createMarkdownTransform } from "./markdown-transform.ts";
@@ -149,23 +141,25 @@ export class AssistantMessageComponent extends Container {
 
 				const runIndex = thinkingRunIndex++;
 				const hidden = this.thinkingVisibilityOverrides.get(runIndex) ?? this.hideThinkingBlock;
-				const thinkingBg = theme.getThinkingBgColor();
-				const thinkingOptions: DefaultTextStyle = {
-					color: (text: string) => theme.fg("thinkingText", text),
-					italic: true,
-				};
-				if (thinkingBg) {
-					thinkingOptions.bgColor = thinkingBg;
-				}
 				const thinkingComponent = hidden
 					? new Text(theme.italic(theme.fg("thinkingText", this.hiddenThinkingLabel)), this.outputPad, 0)
-					: new Markdown(thinkingBlocks.join("\n\n"), this.outputPad, 0, this.markdownTheme, thinkingOptions, {
-							transform: createMarkdownTransform(
-								"assistant-thinking",
-								this.isStreaming,
-								this.markdownTransformers,
-							),
-						});
+					: new Markdown(
+							thinkingBlocks.join("\n\n"),
+							this.outputPad,
+							0,
+							this.markdownTheme,
+							{
+								color: (text: string) => theme.fg("thinkingText", text),
+								italic: true,
+							},
+							{
+								transform: createMarkdownTransform(
+									"assistant-thinking",
+									this.isStreaming,
+									this.markdownTransformers,
+								),
+							},
+						);
 				this.contentContainer.addChild(
 					new MouseRegion(thinkingComponent, (event) => {
 						if (event.type !== "click" || event.button !== "left") return undefined;

@@ -96,8 +96,7 @@ export type ThemeBg =
 	| "customMessageBg"
 	| "toolPendingBg"
 	| "toolSuccessBg"
-	| "toolErrorBg"
-	| "thinkingBg";
+	| "toolErrorBg";
 
 type OptionalThemeColor = "scrollbarTrack" | "scrollbarThumb" | "thinkingMax" | "searchMatchText";
 type OptionalThemeBg = "searchMatchBg";
@@ -333,18 +332,6 @@ export class Theme {
 		return `${ansi}${text}\x1b[49m`; // Reset only background color
 	}
 
-	/**
-	 * Background-color applicator for thinking blocks. Returns `undefined`
-	 * when the theme does not define a thinking background, so no card is
-	 * rendered (backward compatible with themes that predate this token).
-	 */
-	getThinkingBgColor(): ((text: string) => string) | undefined {
-		const ansi = this.bgColors.get("thinkingBg");
-		// "\x1b[49m" is the reset-only value produced for "" (no background) — treat as no card.
-		if (!ansi || ansi === "\x1b[49m") return undefined;
-		return (text: string) => `${ansi}${text}\x1b[49m`;
-	}
-
 	bold(text: string): string {
 		return chalk.bold(text);
 	}
@@ -417,13 +404,14 @@ let BUILTIN_THEMES: Record<string, ThemeJson> | undefined;
 function getBuiltinThemes(): Record<string, ThemeJson> {
 	if (!BUILTIN_THEMES) {
 		const themesDir = getThemesDir();
-		const themeNames = ["dark", "light", "github-dark-default"];
-		BUILTIN_THEMES = Object.fromEntries(
-			themeNames.map((name) => [
-				name,
-				JSON.parse(stripBom(fs.readFileSync(path.join(themesDir, `${name}.json`), "utf-8"))) as ThemeJson,
-			]),
-		);
+		const darkPath = path.join(themesDir, "dark.json");
+		const lightPath = path.join(themesDir, "light.json");
+		const githubDarkDefaultPath = path.join(themesDir, "github-dark-default.json");
+		BUILTIN_THEMES = {
+			dark: JSON.parse(stripBom(fs.readFileSync(darkPath, "utf-8"))) as ThemeJson,
+			light: JSON.parse(stripBom(fs.readFileSync(lightPath, "utf-8"))) as ThemeJson,
+			"github-dark-default": JSON.parse(stripBom(fs.readFileSync(githubDarkDefaultPath, "utf-8"))) as ThemeJson,
+		};
 	}
 	return BUILTIN_THEMES;
 }
@@ -552,7 +540,6 @@ function createTheme(themeJson: ThemeJson, mode?: ColorMode, sourcePath?: string
 		"toolPendingBg",
 		"toolSuccessBg",
 		"toolErrorBg",
-		"thinkingBg",
 	]);
 	for (const [key, value] of Object.entries(resolvedColors)) {
 		if (bgColorKeys.has(key)) {

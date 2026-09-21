@@ -130,6 +130,7 @@ For each built-in provider, pi maintains a list of tool-capable models. Configur
 - Together AI
 - Baseten
 - Kimi For Coding
+- Meta
 - MiniMax
 - Xiaomi MiMo
 - Xiaomi MiMo Token Plan (China)
@@ -152,7 +153,7 @@ The interface from top to bottom:
 
 - **Startup header** - Shows shortcuts (`/hotkeys` for all), loaded AGENTS.md files, prompt templates, skills, and extensions
 - **Messages** - Your messages, assistant responses, tool calls and results, notifications, errors, and extension UI
-- **Editor** - Where you type; border color indicates thinking level
+- **Editor** - Where you type; border color indicates thinking level and the border shows the streaming working indicator
 - **Footer** - Working directory, session name, total token/cache usage (`↑` input, `↓` output, `R` cache read, `W` cache write, `CH` latest cache hit rate), cost, context usage, current model. Totals include assistant responses, usage reported by tools, and summary generation.
 
 The editor can be temporarily replaced by other UI, like built-in `/settings` or custom UI from extensions (e.g., a Q&A tool that lets the user answer model questions in a structured format). [Extensions](#extensions) can also replace the editor, add widgets above/below it, a status line, custom footer, or overlays.
@@ -195,6 +196,7 @@ Type `/` in the editor to trigger commands. [Extensions](#extensions) can regist
 | `/export [file]` | Export session to HTML or JSONL file |
 | `/import <file>` | Import and resume a session from a JSONL file |
 | `/share` | Upload as private GitHub gist with shareable HTML link |
+| `/bug [description]` | Report a bug to the Pi developers; see [Sessions](docs/sessions.md#reporting-bugs) |
 | `/reload` | Reload keybindings, extensions, skills, prompts, themes, and context files |
 | `/hotkeys` | Show all keyboard shortcuts |
 | `/changelog` | Display version history |
@@ -255,7 +257,7 @@ Use `/session` in interactive mode to see the current session ID before reusing 
 
 ### Branching
 
-**`/tree`** - Navigate the session tree in-place. Select any previous point, continue from there, and switch between branches. All history preserved in a single file.
+**`/tree`** - Navigate the session tree in-place. Select any previous point, continue from there, and switch between branches. All history preserved in a single file. Selecting a point while the model is responding cancels that response. Navigation cannot proceed while compaction or another tree navigation is still running; wait for it to finish and retry.
 
 <p align="center"><img src="docs/images/tree-view.png" alt="Tree View" width="600"></p>
 

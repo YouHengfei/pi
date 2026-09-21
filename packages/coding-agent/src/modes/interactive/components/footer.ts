@@ -88,7 +88,9 @@ export class FooterComponent implements Component {
 		// Token and cache statistics are intentionally omitted from the compact footer.
 		const usageTotals = createUsageTotals();
 		for (const entry of this.session.sessionManager.getEntries()) {
-			if (entry.type === "message" && entry.message.role === "assistant") {
+			if (entry.type === "usage") {
+				addUsageToTotals(usageTotals, entry.usage);
+			} else if (entry.type === "message" && entry.message.role === "assistant") {
 				addUsageToTotals(usageTotals, entry.message.usage);
 			} else if (entry.type === "message" && entry.message.role === "toolResult" && entry.message.usage) {
 				addUsageToTotals(usageTotals, entry.message.usage);

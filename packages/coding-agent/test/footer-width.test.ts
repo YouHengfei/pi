@@ -16,6 +16,7 @@ type AssistantUsage = {
 
 function createSession(options: {
 	sessionName: string;
+	branchLabel?: string;
 	modelId?: string;
 	provider?: string;
 	reasoning?: boolean;
@@ -25,6 +26,7 @@ function createSession(options: {
 	compactionUsage?: AssistantUsage;
 	toolUsage?: AssistantUsage;
 	usingSubscription?: boolean;
+	routedModel?: { model: { id: string }; thinkingLevel?: string };
 }): AgentSession {
 	const usage = options.usage;
 	const entries: Array<Record<string, unknown>> = [];
@@ -75,10 +77,15 @@ function createSession(options: {
 		},
 		sessionManager: {
 			getEntries: () => entries,
+			getEntryCount: () => entries.length,
+			getSessionId: () => "test-session",
+			getLeafId: () => null,
 			getSessionName: () => options.sessionName,
+			getCurrentBranchLabel: () => options.branchLabel,
 			getCwd: () => "/tmp/project",
 		},
 		getContextUsage: () => ({ contextWindow: 200_000, percent: 12.3 }),
+		routedModel: options.routedModel,
 		modelRuntime: {
 			isUsingSubscription: () => options.usingSubscription ?? false,
 		},
@@ -87,11 +94,14 @@ function createSession(options: {
 	return session as unknown as AgentSession;
 }
 
-function createFooterData(providerCount: number): ReadonlyFooterDataProvider {
+function createFooterData(
+	providerCount: number,
+	footerStatuses = new Map<string, string>(),
+): ReadonlyFooterDataProvider {
 	const provider = {
 		getGitBranch: () => "main",
 		getExtensionStatuses: () => new Map<string, string>(),
-		getFooterStatuses: () => new Map<string, string>(),
+		getFooterStatuses: () => footerStatuses,
 		getAvailableProviderCount: () => providerCount,
 		onBranchChange: (callback: () => void) => {
 			void callback;
@@ -153,6 +163,32 @@ describe("FooterComponent width handling", () => {
 		}
 	});
 
+	it("shows the physical model a virtual model routed to", () => {
+		const session = createSession({
+			sessionName: "",
+			modelId: "auto",
+			reasoning: true,
+			thinkingLevel: "high",
+			routedModel: { model: { id: "gpt-5.6-luna" }, thinkingLevel: "medium" },
+		});
+		const footer = new FooterComponent(session, createFooterData(1));
+
+		const statsLine = stripAnsi(footer.render(120)[0]);
+
+		expect(statsLine).toContain("auto \u2022 high \u2192 gpt-5.6-luna \u2022 medium");
+	});
+
+	it("keeps branch labels and model-adjacent extension statuses", () => {
+		const session = createSession({ sessionName: "", branchLabel: "review" });
+		const footer = new FooterComponent(session, createFooterData(1, new Map([["codex", "usage\nready"]])));
+		const lines = footer.render(120);
+
+		expect(lines).toHaveLength(1);
+		expect(stripAnsi(lines[0])).toContain("#review");
+		expect(stripAnsi(lines[0])).toContain("test-model • usage ready");
+		expect(visibleWidth(lines[0])).toBeLessThanOrEqual(120);
+	});
+
 	it("includes summary and tool result usage in the total cost", () => {
 		const session = createSession({
 			sessionName: "",
@@ -187,11 +223,21 @@ describe("FooterComponent width handling", () => {
 		});
 		const footer = new FooterComponent(session, createFooterData(1));
 
-		const statsLine = stripAnsi(footer.render(120)[1]);
+		const statsLine = stripAnsi(footer.render(120)[0]);
 		expect(statsLine).toContain("$1.250");
 	});
 
-	it("shows the latest cache hit rate when cache usage is present", () => {
+	it("updates cached usage totals after an entry is appended", () => {
+		const usage = { input: 10, output: 1, cacheRead: 0, cacheWrite: 0, cost: { total: 0.5 } };
+		const session = createSession({ sessionName: "", usage });
+		const footer = new FooterComponent(session, createFooterData(1));
+		expect(stripAnsi(footer.render(120)[0])).toContain("$0.500");
+
+		session.sessionManager.getEntries().push({ type: "message", message: { role: "assistant", usage } } as never);
+		expect(stripAnsi(footer.render(120)[0])).toContain("$1.000");
+	});
+
+	it("keeps the personal footer compact without token or cache statistics", () => {
 		const session = createSession({
 			sessionName: "",
 			usage: {
@@ -204,8 +250,12 @@ describe("FooterComponent width handling", () => {
 		});
 		const footer = new FooterComponent(session, createFooterData(1));
 
-		const statsLine = stripAnsi(footer.render(120)[1]);
-		expect(statsLine).toContain("CH25.0%");
+		const lines = footer.render(120);
+		const statsLine = stripAnsi(lines[0]);
+		expect(lines).toHaveLength(1);
+		expect(statsLine).toContain("$0.001");
+		expect(statsLine).toContain("12.3%/200k");
+		expect(statsLine).not.toMatch(/↑|↓|R50|W50|CH/);
 	});
 
 	it("marks Kimi Coding costs as subscription estimates", () => {
@@ -222,14 +272,14 @@ describe("FooterComponent width handling", () => {
 		});
 		const footer = new FooterComponent(session, createFooterData(1));
 
-		expect(stripAnsi(footer.render(120)[1])).toContain("$1.234 (sub)");
+		expect(stripAnsi(footer.render(120)[0])).toContain("$1.234 (sub)");
 	});
 
 	it("marks explicitly identified subscription auth", () => {
 		const session = createSession({ sessionName: "", provider: "anthropic", usingSubscription: true });
 		const footer = new FooterComponent(session, createFooterData(1));
 
-		expect(stripAnsi(footer.render(120)[1])).toContain("$0.000 (sub)");
+		expect(stripAnsi(footer.render(120)[0])).toContain("$0.000 (sub)");
 	});
 
 	it("does not mark generic OAuth sign-in as a subscription", () => {
@@ -245,7 +295,7 @@ describe("FooterComponent width handling", () => {
 			},
 		});
 		const footer = new FooterComponent(session, createFooterData(1));
-		const stats = stripAnsi(footer.render(120)[1]);
+		const stats = stripAnsi(footer.render(120)[0]);
 
 		expect(stats).toContain("$1.234");
 		expect(stats).not.toContain("(sub)");

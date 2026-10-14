@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getModel, getSupportedThinkingLevels } from "../src/compat.ts";
+import type { Model } from "../src/types.ts";
 
 describe("getSupportedThinkingLevels", () => {
 	it("includes max but not xhigh for Anthropic Opus 4.6 on anthropic-messages API", () => {
@@ -42,7 +43,7 @@ describe("getSupportedThinkingLevels", () => {
 	it("includes Claude Sonnet 5.5 with managed effort levels and official pricing", () => {
 		const model = getModel("anthropic", "claude-sonnet-5-5");
 		expect(model).toMatchObject({
-			cost: { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
+			cost: { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 },
 			contextWindow: 1_000_000,
 			maxTokens: 128_000,
 			compat: {
@@ -175,10 +176,30 @@ describe("getSupportedThinkingLevels", () => {
 		expect(getSupportedThinkingLevels(model!)).toEqual(["off", "low", "high", "max"]);
 	});
 
-	it("includes low/high/max plus off for DeepSeek V4 Flash on opencode-go", () => {
-		const model = getModel("opencode-go", "deepseek-v4-flash");
-		expect(model).toBeDefined();
-		expect(getSupportedThinkingLevels(model!)).toEqual(["off", "low", "high", "max"]);
+	it("includes low/high/max plus off for legacy DeepSeek V4 Flash metadata on opencode-go", () => {
+		// Keep this regression independent of the live catalog, which removed V4 Flash.
+		const model: Model<"openai-completions"> = {
+			id: "deepseek-v4-flash",
+			name: "DeepSeek V4 Flash",
+			api: "openai-completions",
+			provider: "opencode-go",
+			baseUrl: "https://opencode.ai/zen/go/v1",
+			reasoning: true,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 1000000,
+			maxTokens: 384000,
+			thinkingLevelMap: {
+				off: "none",
+				minimal: null,
+				low: "low",
+				medium: null,
+				high: "high",
+				xhigh: null,
+				max: "max",
+			},
+		};
+		expect(getSupportedThinkingLevels(model)).toEqual(["off", "low", "high", "max"]);
 	});
 
 	it("preserves low/high/max metadata for DeepSeek V4.1 Flash on OpenRouter", () => {

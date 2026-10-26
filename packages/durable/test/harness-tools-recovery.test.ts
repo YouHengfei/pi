@@ -83,7 +83,7 @@ async function toolTaskId(harness: Harness): Promise<TaskId> {
 
 /**
  * A tool that writes output, then blocks until its invocation is cancelled the first `blocking` times it runs.
- * `started` resolves once the output is durable.
+ * `started` resolves once the output is committed; a close stores it.
  */
 function blockingTool(name: string, extra: Partial<ToolRegistration> = {}) {
 	const started = deferred();
@@ -218,7 +218,7 @@ describe("tool recovery", () => {
 			setup.registry,
 			tool("work", async () => {
 				runs++;
-				return { content: [] };
+				return { output: [] };
 			}),
 		);
 		const reached = deferred();
@@ -254,7 +254,7 @@ describe("tool recovery", () => {
 		const setup = chatSetup();
 		addTool(
 			setup.registry,
-			tool("work", async () => ({ content: [] })),
+			tool("work", async () => ({ output: [] })),
 		);
 		const reached = deferred();
 		let observed = 0;
@@ -313,7 +313,7 @@ describe("tool recovery", () => {
 		// A result that is not strict JSON makes the result commit throw, so the scheduler faults the task.
 		addTool(
 			setup.registry,
-			tool("bad", async () => ({ content: [], details: { fn: (() => 1) as unknown as JsonValue } })),
+			tool("bad", async () => ({ output: [], details: { fn: (() => 1) as unknown as JsonValue } })),
 		);
 		const requests: string[] = [];
 		setup.faux.setResponses([
